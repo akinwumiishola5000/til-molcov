@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"></script>
+<style>
+:root{
+  --navy:#00133F; --green:#3F824A; --green-d:#2F6A39; --blue:#1E9FC0; --ink-2:#33415E; --ink-3:#5F6E86;
+  --line:#D4E3E0; --mint:#EEF5F4;
+  --sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;font-family:var(--sans);color:var(--navy);font-size:15px}
+.ms{font-family:"Material Symbols Outlined";font-size:19px;line-height:1;display:inline-block;vertical-align:middle;-webkit-font-feature-settings:"liga";font-feature-settings:"liga"}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:7px 10px;background:var(--mint);border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;background:#fff;border-radius:9px;box-shadow:inset 0 0 0 1.5px var(--line);padding:2px}
+.seg button{border:0;background:none;padding:5px 14px;border-radius:7px;font-weight:700;cursor:pointer;color:var(--ink-3)}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.ctl{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--ink-2)}
+select{border:1.5px solid var(--line);border-radius:8px;background:#fff;padding:4px 6px;font-weight:600;color:var(--navy)}
+input[type=color]{width:30px;height:28px;border:1.5px solid var(--line);border-radius:7px;padding:1px;background:#fff;cursor:pointer}
+input[type=color]:disabled{opacity:.35;cursor:default}
+.sw{display:inline-flex;gap:4px;align-items:center}
+.sw button{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--line);cursor:pointer;padding:0}
+.sw button[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--blue)}
+.tog{border:0;background:#fff;border-radius:8px;padding:5px 9px;cursor:pointer;font-weight:600;color:var(--navy);box-shadow:inset 0 0 0 1.5px var(--line);display:inline-flex;align-items:center;gap:4px}
+.tog[aria-pressed="true"]{background:var(--blue);color:#fff;box-shadow:none}
+.act{border:0;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700;background:var(--green);color:#fff;display:inline-flex;align-items:center;gap:5px}
+.act:hover{background:var(--green-d)}
+.act.ghost{background:#fff;color:var(--navy);box-shadow:inset 0 0 0 1.5px var(--line)}
+.sp{flex:1}
+.only3d,.only2d{display:contents}
+.stage{position:relative;height:var(--h,440px);background:#fff;transition:background .2s}
+#v3d{position:absolute;inset:0}
+#v2d{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#v2d svg{max-width:100%;max-height:100%;width:auto;height:100%;transition:transform .25s}
+.hidden{display:none !important}
+.status{position:absolute;left:12px;bottom:9px;font-size:13px;color:var(--ink-3);pointer-events:none}
+.stage.dark .status{color:#B9C7DE}
+.msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:var(--ink-2)}
+@media (max-width:560px){ .ctl .lbl{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar" role="toolbar" aria-label="Viewer controls">
+    <div class="seg" role="group" aria-label="View">
+      <button id="b2d" type="button">2D</button>
+      <button id="b3d" type="button">3D</button>
+    </div>
+    <span class="only3d"><label class="ctl"><span class="lbl">Style</span>
+      <select id="style">
+        <option value="stick">Sticks</option>
+        <option value="ballstick" selected>Ball and stick</option>
+        <option value="sphere">Space-filling</option>
+        <option value="line">Lines</option>
+      </select></label></span>
+    <label class="ctl"><span class="lbl">Colour</span>
+      <select id="cmode">
+        <option value="element">By element</option>
+        <option value="carbon">Element, custom carbon</option>
+        <option value="single">One colour</option>
+      </select></label>
+    <input type="color" id="ccol" value="#1E9FC0" aria-label="Structure colour" disabled>
+    <span class="ctl"><span class="lbl">Background</span>
+      <span class="sw" id="bgsw">
+        <button type="button" data-bg="#FFFFFF" style="background:#FFFFFF" aria-label="White background"></button>
+        <button type="button" data-bg="#EEF5F4" style="background:#EEF5F4" aria-label="Mint background"></button>
+        <button type="button" data-bg="#00133F" style="background:#00133F" aria-label="Navy background"></button>
+        <button type="button" data-bg="#000000" style="background:#000000" aria-label="Black background"></button>
+      </span>
+      <input type="color" id="bgcol" value="#FFFFFF" aria-label="Custom background colour"></span>
+  </div>
+  <div class="bar" role="toolbar" aria-label="View actions">
+    <span class="only3d">
+      <button class="tog" id="tH" type="button" aria-pressed="true">H atoms</button>
+      <button class="tog" id="tL" type="button" aria-pressed="false">Labels</button>
+      <button class="tog" id="tS" type="button" aria-pressed="false"><span class="ms">360</span>Spin</button>
+    </span>
+    <span class="only2d">
+      <button class="tog" id="rL" type="button" aria-label="Rotate left"><span class="ms">rotate_left</span></button>
+      <button class="tog" id="rR" type="button" aria-label="Rotate right"><span class="ms">rotate_right</span></button>
+    </span>
+    <button class="tog" id="reset" type="button" title="Reset view"><span class="ms">center_focus_strong</span>Reset</button>
+    <span class="sp"></span>
+    <span class="only2d"><button class="act ghost" id="svgdl" type="button"><span class="ms">download</span>SVG</button></span>
+    <button class="act" id="snap" type="button" title="Save a picture of the current view"><span class="ms">photo_camera</span>PNG</button>
+  </div>
+  <div class="stage" id="stage">
+    <div id="v3d"></div>
+    <div id="v2d"></div>
+    <div class="msg hidden" id="msg"></div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+<script>
+/*MOLCOV_DATA*/
+const D = window.MOLCOV || {name:"molecule", svg:"", sdf3d:"", start:"3d", height:440, note3d:""};
+const $ = id => document.getElementById(id);
+const stage = $("stage");
+stage.style.setProperty("--h", (D.height || 440) + "px");
+const safeName = (D.name || "molecule").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 60) || "molecule";
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const S = { view: D.start === "2d" || !D.sdf3d ? "2d" : "3d", style: "ballstick", cmode: "element",
+            col: "#1E9FC0", bg: "#FFFFFF", H: true, labels: false, spin: false, rot: 0 };
+
+function isDark(hex){
+  const n = parseInt(hex.slice(1), 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
+  return (0.2126*r + 0.7152*g + 0.0722*b) / 255 < 0.45;
+}
+const hexNum = h => parseInt(h.replace("#", ""), 16);
+
+/* ---------- 3D ---------- */
+let viewer = null;
+function init3d(){
+  if (viewer || !D.sdf3d || !window.$3Dmol) return;
+  viewer = $3Dmol.createViewer($("v3d"), { backgroundColor: S.bg, antialias: true });
+  viewer.addModel(D.sdf3d, "sdf");
+  viewer.zoomTo(); viewer.zoom(0.9);
+}
+function colourSpec(){
+  if (S.cmode === "single") return { color: S.col };
+  if (S.cmode === "carbon") {
+    const map = Object.assign({}, $3Dmol.elementColors.defaultColors);
+    map.C = hexNum(S.col);
+    return { colorscheme: { prop: "elem", map: map } };
+  }
+  return { colorscheme: "default" };
+}
+function draw3d(){
+  if (!viewer) return;
+  const c = colourSpec();
+  const spec = {
+    stick:     { stick: Object.assign({ radius: 0.17 }, c) },
+    ballstick: { stick: Object.assign({ radius: 0.13 }, c), sphere: Object.assign({ scale: 0.27 }, c) },
+    sphere:    { sphere: Object.assign({ scale: 1.0 }, c) },
+    line:      { line: Object.assign({ linewidth: 2 }, c) }
+  }[S.style];
+  viewer.setStyle({}, spec);
+  if (!S.H) viewer.setStyle({ elem: "H" }, {});
+  viewer.setBackgroundColor(S.bg);
+  viewer.removeAllLabels();
+  if (S.labels) {
+    const dark = isDark(S.bg);
+    viewer.selectedAtoms({}).forEach((a, i) => {
+      if (a.elem === "H") return;
+      viewer.addLabel(a.elem + (a.index + 1), { position: a, fontSize: 11, fontColor: dark ? "white" : "#00133F",
+        backgroundColor: dark ? "#00133F" : "white", backgroundOpacity: 0.7, borderThickness: 0, inFront: true });
+    });
+  }
+  viewer.spin(S.spin ? "y" : false);
+  viewer.render();
+}
+
+/* ---------- 2D ---------- */
+function svgFor(){
+  const dark = isDark(S.bg);
+  return (D.svg || "").replace(/#[0-9A-Fa-f]{6}/g, c => {
+    const u = c.toUpperCase();
+    if (S.cmode === "single") return S.col;
+    if (u === "#000000") return S.cmode === "carbon" ? S.col : (dark ? "#FFFFFF" : "#000000");
+    if (dark && u === "#0000FF") return "#7C9BFF";
+    return c;
+  });
+}
+function draw2d(){
+  $("v2d").innerHTML = svgFor();
+  const svg = $("v2d").querySelector("svg");
+  if (svg) svg.style.transform = "rotate(" + S.rot + "deg)";
+}
+
+/* ---------- shared ---------- */
+function paint(){
+  stage.style.background = S.bg;
+  stage.classList.toggle("dark", isDark(S.bg));
+  $("b2d").setAttribute("aria-pressed", S.view === "2d");
+  $("b3d").setAttribute("aria-pressed", S.view === "3d");
+  document.querySelectorAll(".only3d").forEach(e => e.classList.toggle("hidden", S.view !== "3d"));
+  document.querySelectorAll(".only2d").forEach(e => e.classList.toggle("hidden", S.view !== "2d"));
+  $("ccol").disabled = S.cmode === "element";
+  document.querySelectorAll("#bgsw button").forEach(b => b.setAttribute("aria-pressed", b.dataset.bg.toUpperCase() === S.bg.toUpperCase()));
+  $("tH").setAttribute("aria-pressed", S.H);
+  $("tL").setAttribute("aria-pressed", S.labels);
+  $("tS").setAttribute("aria-pressed", S.spin);
+  const show3d = S.view === "3d";
+  $("v3d").classList.toggle("hidden", !show3d);
+  $("v2d").classList.toggle("hidden", show3d);
+  const msg = $("msg");
+  if (show3d && !D.sdf3d) { msg.textContent = D.note3d || "No 3D structure is available for this molecule."; msg.classList.remove("hidden"); }
+  else msg.classList.add("hidden");
+  if (show3d) { init3d(); if (viewer) { viewer.resize(); draw3d(); } }
+  else { if (viewer) viewer.spin(false); draw2d(); }
+  $("status").textContent = show3d ? (D.sdf3d ? "Drag to rotate, scroll to zoom, right-drag to move" + (D.method ? ". " + D.method : "") : "")
+                                   : "2D depiction";
+}
+
+$("b2d").onclick = () => { S.view = "2d"; paint(); };
+$("b3d").onclick = () => { S.view = "3d"; paint(); };
+$("style").onchange = e => { S.style = e.target.value; draw3d(); };
+$("cmode").onchange = e => { S.cmode = e.target.value; paint(); };
+$("ccol").oninput = e => { S.col = e.target.value; S.view === "3d" ? draw3d() : draw2d(); };
+document.querySelectorAll("#bgsw button").forEach(b => b.onclick = () => { S.bg = b.dataset.bg; $("bgcol").value = S.bg; paint(); });
+$("bgcol").oninput = e => { S.bg = e.target.value; paint(); };
+$("tH").onclick = () => { S.H = !S.H; paint(); };
+$("tL").onclick = () => { S.labels = !S.labels; paint(); };
+$("tS").onclick = () => { S.spin = !S.spin; paint(); };
+$("rL").onclick = () => { S.rot -= 15; draw2d(); };
+$("rR").onclick = () => { S.rot += 15; draw2d(); };
+$("reset").onclick = () => {
+  if (S.view === "3d" && viewer) { viewer.zoomTo(); viewer.zoom(0.9); viewer.render(); }
+  else { S.rot = 0; draw2d(); }
+};
+
+function download(href, filename){
+  const a = document.createElement("a");
+  a.href = href; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+$("svgdl").onclick = () => {
+  let svg = svgFor();
+  // Put the chosen background and rotation into the saved file
+  const w = 520, h = 400;
+  svg = svg.replace(/(<svg[^>]*>)/, `$1<rect width="100%" height="100%" fill="${S.bg}"/><g transform="rotate(${S.rot} ${w/2} ${h/2})">`)
+           .replace(/<\/svg>\s*$/, "</g></svg>");
+  download(URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })), safeName + "_2D.svg");
+};
+$("snap").onclick = () => {
+  if (S.view === "3d") {
+    if (!viewer) return;
+    viewer.render();
+    download(viewer.pngURI(), safeName + "_3D.png");
+    return;
+  }
+  const img = new Image(), scale = 3, w = 520, h = 400;
+  const rad = S.rot * Math.PI / 180;
+  const cw = Math.ceil(Math.abs(w * Math.cos(rad)) + Math.abs(h * Math.sin(rad)));
+  const ch = Math.ceil(Math.abs(w * Math.sin(rad)) + Math.abs(h * Math.cos(rad)));
+  img.onload = () => {
+    const c = document.createElement("canvas");
+    c.width = cw * scale; c.height = ch * scale;
+    const g = c.getContext("2d");
+    g.fillStyle = S.bg; g.fillRect(0, 0, c.width, c.height);
+    g.translate(c.width / 2, c.height / 2); g.rotate(rad);
+    g.drawImage(img, -w * scale / 2, -h * scale / 2, w * scale, h * scale);
+    download(c.toDataURL("image/png"), safeName + "_2D.png");
+  };
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgFor());
+};
+
+window.addEventListener("resize", () => { if (viewer && S.view === "3d") viewer.resize(); });
+if (!window.$3Dmol && D.sdf3d) {
+  document.querySelector('#b3d').title = "The 3D viewer could not load. Check your internet connection.";
+}
+paint();
+</script>
+</body>
+</html>

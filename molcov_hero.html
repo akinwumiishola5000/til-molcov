@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"></script>
+<style>
+:root{--navy:#00133F;--blue:#1E9FC0;--green:#3F824A;--leaf:#7CC48A;--mute:#9FB2D4}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:transparent;font-family:"Source Sans 3",system-ui,sans-serif}
+body{padding:8px}
+.stage{position:relative;height:calc(100vh - 16px);min-height:280px;background:var(--navy);border-radius:20px;overflow:hidden;
+  box-shadow:0 0 0 6px #fff,0 0 0 7px #D4E3E0;cursor:pointer}
+.smiles{position:absolute;left:20px;right:20px;top:18px;font-family:"Source Code Pro",ui-monospace,Menlo,monospace;
+  font-size:15px;color:#DCE6F5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:3}
+.smiles .caret{display:inline-block;width:8px;height:17px;background:var(--leaf);vertical-align:-3px;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.layer{position:absolute;inset:44px 0 46px;transition:opacity .7s ease}
+.off{opacity:0;pointer-events:none}
+#d2{display:flex;align-items:center;justify-content:center}
+#d2 svg{height:100%;width:auto;max-width:94%}
+#d2 path,#d2 text{opacity:0;transition:opacity .35s ease}
+#d2.built path,#d2.built text{opacity:1}
+#d3{position:absolute;inset:44px 0 46px}
+.foot{position:absolute;left:20px;right:16px;bottom:13px;display:flex;align-items:center;gap:14px;z-index:3}
+.name{color:#fff;font-weight:700;font-size:17px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.steps{display:flex;gap:4px;font-size:13px;font-weight:700;color:var(--mute)}
+.steps span{padding:2px 8px;border-radius:999px;transition:background .3s,color .3s}
+.steps span.on{background:var(--green);color:#fff}
+.next{border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:999px;width:30px;height:30px;cursor:pointer;font-size:18px;line-height:30px;padding:0}
+.next:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="stage" id="stage" title="Click to show the next molecule">
+  <div class="smiles" id="smiles" aria-live="polite"></div>
+  <div class="layer" id="d2"></div>
+  <div class="layer off" id="d3"></div>
+  <div class="foot">
+    <div class="name" id="name"></div>
+    <div class="steps" aria-hidden="true"><span id="s1">SMILES</span><span id="s2">2D</span><span id="s3">3D</span></div>
+    <button class="next" id="next" type="button" aria-label="Next molecule">&#8250;</button>
+  </div>
+</div>
+<script>
+/*MOLCOV_HERO*/
+const MOLS = window.MOLCOV_HERO || [];
+const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = id => document.getElementById(id);
+const CARBON = [0x1E9FC0, 0x6FC27F];
+let viewer = null, idx = 0, timers = [];
+
+function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
+function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+function step(n){ ["s1","s2","s3"].forEach((id, i) => $(id).classList.toggle("on", i === n)); }
+
+function darkSvg(svg){
+  return svg.replace(/#[0-9A-Fa-f]{6}/g, c => {
+    const u = c.toUpperCase();
+    if (u === "#000000") return "#E8F0FA";
+    if (u === "#0000FF") return "#7C9BFF";
+    if (u === "#FF0000") return "#FF6B6B";
+    return c;
+  });
+}
+
+function show3d(m, carbon){
+  if (!window.$3Dmol) return;
+  if (!viewer) viewer = $3Dmol.createViewer($("d3"), { backgroundColor: "#00133F", antialias: true });
+  viewer.clear();
+  viewer.addModel(m.sdf, "sdf");
+  const map = Object.assign({}, $3Dmol.elementColors.defaultColors, { C: carbon });
+  const cs = { colorscheme: { prop: "elem", map: map } };
+  viewer.setStyle({}, { stick: Object.assign({ radius: 0.14 }, cs), sphere: Object.assign({ scale: 0.26 }, cs) });
+  viewer.zoomTo(); viewer.zoom(0.95); viewer.render();
+  viewer.spin(reduce ? false : "y", 0.6);
+}
+
+function play(i){
+  clearTimers();
+  if (!MOLS.length) return;
+  idx = (i + MOLS.length) % MOLS.length;
+  const m = MOLS[idx], carbon = CARBON[idx % 2];
+  $("name").textContent = m.name;
+  const d2 = $("d2"), d3 = $("d3"), sm = $("smiles");
+  d2.innerHTML = darkSvg(m.svg);
+  d2.classList.remove("built");
+
+  if (reduce) {
+    sm.textContent = m.smiles; step(2);
+    d2.classList.add("off"); d3.classList.remove("off"); show3d(m, carbon);
+    return;
+  }
+  // 1. type the SMILES
+  d3.classList.add("off"); d2.classList.remove("off"); step(0);
+  sm.innerHTML = '<span id="typed"></span><span class="caret"></span>';
+  const per = Math.max(18, Math.min(55, 1500 / m.smiles.length));
+  for (let k = 1; k <= m.smiles.length; k++) later(() => { $("typed").textContent = m.smiles.slice(0, k); }, k * per);
+  const tType = m.smiles.length * per + 250;
+  // 2. build the 2D drawing piece by piece
+  later(() => {
+    step(1);
+    const parts = Array.from(d2.querySelectorAll("path, text"));
+    const gap = Math.max(12, Math.min(60, 1800 / Math.max(parts.length, 1)));
+    parts.forEach((p, k) => later(() => { p.style.opacity = 1; }, k * gap));
+  }, tType);
+  // 3. turn into the spinning 3D model
+  later(() => { step(2); show3d(m, carbon); d2.classList.add("off"); d3.classList.remove("off"); }, tType + 2600);
+  // 4. next molecule
+  later(() => play(idx + 1), tType + 9000);
+}
+
+$("stage").addEventListener("click", e => { if (e.target.id !== "next") play(idx + 1); });
+$("next").addEventListener("click", e => { e.stopPropagation(); play(idx + 1); });
+window.addEventListener("resize", () => viewer && viewer.resize());
+play(0);
+</script>
+</body>
+</html>
