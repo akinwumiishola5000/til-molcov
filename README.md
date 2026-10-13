@@ -1,4 +1,5 @@
 # MolCov
+[![DOI](https://zenodo.org/badge/1404568809.svg)](https://doi.org/10.5281/zenodo.23351926)
 
 A molecule sketcher and converter for members of The Insilico Lab, part of the CADD Toolkit at <https://www.theinsilicolab.org/cadd-toolkit>.
 
