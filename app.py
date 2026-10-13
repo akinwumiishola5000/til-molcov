@@ -24,7 +24,7 @@ except ImportError:  # the app still works without the sketcher
     st_ketcher = None
 
 APP_NAME = "MolCov"
-VERSION = "1.0"
+VERSION = "1.0.0"
 SITE_URL = "https://www.theinsilicolab.org/home"
 TOOLKIT_URL = "https://www.theinsilicolab.org/cadd-toolkit"
 WORKSPACE_URL = "https://theinsilicolab-workspace.streamlit.app"
