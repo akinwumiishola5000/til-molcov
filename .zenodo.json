@@ -1,0 +1,20 @@
+{
+  "upload_type": "software",
+  "title": "MolCov: A Molecule Sketcher and File Converter For Computer-Aided Drug Design (CADD)",
+  "version": "0.1.0",
+  "description": "MolCov is a browser-based tool from The Insilico Lab for drawing, converting and inspecting small molecules. Structures can be drawn in Ketcher, entered as SMILES, or looked up in PubChem, and are returned as canonical and isomeric SMILES, formula, InChI and InChIKey with interactive 2D and 3D views. 3D coordinates are generated with ETKDGv3 and relaxed with MMFF94 (UFF fallback), and can be downloaded as SDF, PDB, MOL2, MOL or XYZ. The file converter reads SDF, MOL, MOL2, PDB, PDBQT, XYZ and SMI files, including multi-molecule docking outputs, and can infer bonds from distances with an optional template SMILES to restore bond orders.",
+  "creators": [
+    {"name": "Akinwumi, Ishola Abeeb", "affiliation": "University at Buffalo; The Insilico Lab", "orcid": "0000-0003-1973-8833"}
+  ],
+  "keywords": ["cheminformatics", "file conversion", "3D conformer generation", "molecule editor", "RDKit", "CADD education"],
+  "license": "mit",
+  "language": "eng",
+  "related_identifiers": [
+    {"identifier": "https://www.theinsilicolab.org/cadd-toolkit", "relation": "isPartOf"}
+  ],
+  "references": [
+    "Wang S, Witek J, Landrum GA, Riniker S. J. Chem. Inf. Model. 2020, 60, 2044-2058.",
+    "Halgren TA. J. Comput. Chem. 1996, 17, 490-519.",
+    "Rego N, Koes D. Bioinformatics 2015, 31, 1322-1324."
+  ]
+}
